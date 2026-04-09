@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 
-export default function NoteForm({ onSave, initialData = null, onCancel }) {
+export default function NoteForm({ onSave, onAiDraft, initialData = null, onCancel }) {
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
   // Simply store tags as a single comma-separated string for easy editing
   const [tagsString, setTagsString] = useState(initialData?.tags?.join(', ') || '');
+  const [draftSummary, setDraftSummary] = useState('');
+  const [aiError, setAiError] = useState('');
+  const [aiModePending, setAiModePending] = useState('');
   
   const contentRef = useRef(null);
 
@@ -41,6 +44,26 @@ export default function NoteForm({ onSave, initialData = null, onCancel }) {
     setTitle('');
     setContent('');
     setTagsString('');
+    setDraftSummary('');
+    setAiError('');
+  };
+
+  const handleAiDraft = async (mode) => {
+    if (!onAiDraft) return;
+    setAiError('');
+    setAiModePending(mode);
+    try {
+      const output = await onAiDraft(content, mode);
+      if (mode === 'summary') {
+        setDraftSummary(output);
+      } else {
+        setContent(output);
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'AI request failed');
+    } finally {
+      setAiModePending('');
+    }
   };
 
   return (
@@ -73,6 +96,24 @@ export default function NoteForm({ onSave, initialData = null, onCancel }) {
         />
         
         <div>
+          <button
+            type="button"
+            className="btn"
+            style={{ marginRight: '8px' }}
+            onClick={() => handleAiDraft('summary')}
+            disabled={!content.trim() || Boolean(aiModePending)}
+          >
+            {aiModePending === 'summary' ? 'Summarizing...' : 'AI Summarize'}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ marginRight: '8px' }}
+            onClick={() => handleAiDraft('enhance')}
+            disabled={!content.trim() || Boolean(aiModePending)}
+          >
+            {aiModePending === 'enhance' ? 'Enhancing...' : 'AI Enhance'}
+          </button>
           {onCancel && (
             <button type="button" className="btn" onClick={onCancel} style={{ marginRight: '8px' }}>
               Cancel
@@ -84,6 +125,15 @@ export default function NoteForm({ onSave, initialData = null, onCancel }) {
           </button>
         </div>
       </div>
+      {aiError && (
+        <p style={{ color: 'var(--danger-color)', fontSize: '0.85rem', padding: '0 16px 16px' }}>{aiError}</p>
+      )}
+      {draftSummary && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>AI Summary</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{draftSummary}</p>
+        </div>
+      )}
     </form>
   );
 }

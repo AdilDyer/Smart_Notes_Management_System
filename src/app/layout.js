@@ -1,6 +1,7 @@
 import "./globals.css";
 import { NotesProvider } from "@/context/NotesContext";
 import { FilterProvider } from "@/context/FilterContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata = {
   title: "NoteHive",
@@ -11,11 +12,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <NotesProvider>
-          <FilterProvider>
-            {children}
-          </FilterProvider>
-        </NotesProvider>
+        <AuthProvider>
+          <NotesProvider>
+            <FilterProvider>{children}</FilterProvider>
+          </NotesProvider>
+        </AuthProvider>
       </body>
     </html>
   );

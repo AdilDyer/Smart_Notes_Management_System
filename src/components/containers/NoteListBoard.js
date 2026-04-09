@@ -1,13 +1,45 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNotes } from '@/context/NotesContext';
 import { useFilter } from '@/context/FilterContext';
 import NoteCard from '../ui/NoteCard';
 
 export default function NoteListBoard() {
-  const { notes, togglePin, deleteNote, isLoaded } = useNotes();
+  const { notes, togglePin, deleteNote, runAiEnhancement, isLoaded } = useNotes();
   const { searchQuery, selectedTags, toggleTagFilter } = useFilter();
+  const [error, setError] = useState('');
+  const [pendingAiId, setPendingAiId] = useState('');
+
+  const handleDelete = async (id) => {
+    setError('');
+    try {
+      await deleteNote(id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete note');
+    }
+  };
+
+  const handleTogglePin = async (id) => {
+    setError('');
+    try {
+      await togglePin(id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to pin note');
+    }
+  };
+
+  const handleEnhance = async (id, mode) => {
+    setError('');
+    setPendingAiId(id);
+    try {
+      await runAiEnhancement(id, mode);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'AI action failed');
+    } finally {
+      setPendingAiId('');
+    }
+  };
 
   const filteredNotes = useMemo(() => {
     return notes.filter((note) => {
@@ -40,6 +72,7 @@ export default function NoteListBoard() {
 
   return (
     <div className="note-board">
+      {error && <p style={{ color: 'var(--danger-color)', marginBottom: '8px' }}>{error}</p>}
       {pinnedNotes.length > 0 && (
         <section>
           <h2 className="board-section-title">Pinned</h2>
@@ -48,8 +81,10 @@ export default function NoteListBoard() {
               <NoteCard 
                 key={note.id} 
                 note={note} 
-                onTogglePin={togglePin} 
-                onDelete={deleteNote}
+                onTogglePin={handleTogglePin} 
+                onDelete={handleDelete}
+                onEnhance={handleEnhance}
+                isAiPending={pendingAiId === note.id}
                 onTagClick={toggleTagFilter}
               />
             ))}
@@ -65,8 +100,10 @@ export default function NoteListBoard() {
               <NoteCard 
                 key={note.id} 
                 note={note} 
-                onTogglePin={togglePin} 
-                onDelete={deleteNote}
+                onTogglePin={handleTogglePin} 
+                onDelete={handleDelete}
+                onEnhance={handleEnhance}
+                isAiPending={pendingAiId === note.id}
                 onTagClick={toggleTagFilter}
               />
             ))}

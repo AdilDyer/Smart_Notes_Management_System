@@ -1,8 +1,11 @@
 import React from 'react';
 import SearchBar from '../ui/SearchBar';
 import { Layers } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function HeaderContainer() {
+  const { user, logout } = useAuth();
+
   return (
     <header className="app-header">
       <div className="app-title">
@@ -10,7 +13,10 @@ export default function HeaderContainer() {
         <span>NoteHive</span>
       </div>
       <SearchBar />
-      <div style={{ width: '120px' }}></div> {/* Spacer to maintain center alignment if needed */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px', justifyContent: 'flex-end' }}>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{user?.email}</span>
+        <button className="btn" onClick={logout}>Logout</button>
+      </div>
     </header>
   );
 }

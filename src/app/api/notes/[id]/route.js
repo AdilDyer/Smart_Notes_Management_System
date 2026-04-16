@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromCookie } from "@/lib/auth";
 import { noteUpdateSchema } from "@/lib/validators";
+import { ensureSameOrigin } from "@/lib/security";
 
 export async function PATCH(request, { params }) {
   const user = await getCurrentUserFromCookie();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const originError = ensureSameOrigin(request);
+  if (originError) return originError;
 
   const { id } = params;
   const body = await request.json();
@@ -29,9 +33,12 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({ note });
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
   const user = await getCurrentUserFromCookie();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const originError = ensureSameOrigin(request);
+  if (originError) return originError;
 
   const { id } = params;
   const existing = await prisma.note.findFirst({

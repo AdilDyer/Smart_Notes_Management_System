@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserFromCookie } from "@/lib/auth";
 import { noteCreateSchema } from "@/lib/validators";
+import { ensureSameOrigin } from "@/lib/security";
 
 export async function GET() {
   const user = await getCurrentUserFromCookie();
@@ -18,6 +19,9 @@ export async function GET() {
 export async function POST(request) {
   const user = await getCurrentUserFromCookie();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const originError = ensureSameOrigin(request);
+  if (originError) return originError;
 
   const body = await request.json();
   const parsed = noteCreateSchema.safeParse(body);

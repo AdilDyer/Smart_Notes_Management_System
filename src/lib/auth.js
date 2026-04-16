@@ -1,8 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { getJwtSecret } from "@/lib/env";
 
 const COOKIE_NAME = "notehive_token";
-const tokenSecret = new TextEncoder().encode(process.env.JWT_SECRET || "dev-secret-change-me");
+const tokenSecret = new TextEncoder().encode(getJwtSecret());
 
 export async function signAuthToken(payload) {
   return new SignJWT(payload)
@@ -38,7 +39,7 @@ export async function setAuthCookie(token) {
     value: token,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
@@ -51,7 +52,7 @@ export async function clearAuthCookie() {
     value: "",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
     expires: new Date(0),
   });

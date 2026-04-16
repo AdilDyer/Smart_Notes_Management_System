@@ -3,9 +3,20 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { authSchema } from "@/lib/validators";
 import { setAuthCookie, signAuthToken } from "@/lib/auth";
+import { getClientIp, enforceRateLimit } from "@/lib/rate-limit";
+import { ensureSameOrigin, tooManyRequestsResponse } from "@/lib/security";
 
 export async function POST(request) {
   try {
+    const originError = ensureSameOrigin(request);
+    if (originError) return originError;
+
+    const ip = getClientIp(request);
+    const rateLimit = enforceRateLimit(`login:${ip}`, { limit: 5, windowMs: 60_000 });
+    if (!rateLimit.allowed) {
+      return tooManyRequestsResponse(rateLimit.retryAfterSeconds);
+    }
+
     const body = await request.json();
     const parsed = authSchema.safeParse(body);
     if (!parsed.success) {

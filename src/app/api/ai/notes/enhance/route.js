@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth";
 import { noteEnhanceSchema } from "@/lib/validators";
 import { getGeminiClient } from "@/lib/gemini";
+import { getClientIp, enforceRateLimit } from "@/lib/rate-limit";
+import { ensureSameOrigin, tooManyRequestsResponse } from "@/lib/security";
 
 function getPrompt(content, mode) {
   if (mode === "summary") {
@@ -16,6 +18,18 @@ export async function POST(request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
+    const originError = ensureSameOrigin(request);
+    if (originError) return originError;
+
+    const ip = getClientIp(request);
+    const rateLimit = enforceRateLimit(`ai:${user.userId}:${ip}`, {
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (!rateLimit.allowed) {
+      return tooManyRequestsResponse(rateLimit.retryAfterSeconds);
+    }
+
     const body = await request.json();
     const parsed = noteEnhanceSchema.safeParse(body);
     if (!parsed.success) {
